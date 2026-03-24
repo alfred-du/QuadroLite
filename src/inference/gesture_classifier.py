@@ -4,6 +4,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
+
 from src.inference.hand_landmarker import FrameResult, HandResult
 from src.pipeline.stage import Stage
 
@@ -26,6 +28,8 @@ class GestureResult:
     confidence: float
     action: str | None
     handedness: str
+    frame: np.ndarray | None = None
+    landmarks: list[tuple[float, float, float]] | None = None
 
 
 def _is_finger_up(
@@ -92,8 +96,14 @@ class GestureClassifierStage(Stage):
         self._log.info("Gesture-action map: %s", self._action_map)
 
     def process(self, frame_result: FrameResult) -> GestureResult | None:
-        if frame_result is None or not frame_result.hands:
+        if frame_result is None:
             return None
+
+        if not frame_result.hands:
+            return GestureResult(
+                gesture=None, confidence=0.0, action=None,
+                handedness="", frame=frame_result.frame,
+            )
 
         hand = frame_result.hands[0]
         states = _finger_states(hand)
@@ -105,6 +115,8 @@ class GestureClassifierStage(Stage):
             confidence=hand.score,
             action=action,
             handedness=hand.handedness,
+            frame=frame_result.frame,
+            landmarks=hand.landmarks,
         )
 
 
@@ -120,4 +132,5 @@ def classify_hand(
         confidence=hand.score,
         action=action,
         handedness=hand.handedness,
+        landmarks=hand.landmarks,
     )

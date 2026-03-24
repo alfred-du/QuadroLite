@@ -21,21 +21,26 @@ class ActionHandler(abc.ABC):
 
 
 class DispatchStage(Stage):
-    """Routes ``GestureResult`` objects to the active action handler."""
+    """Routes ``GestureResult`` objects to one or more action handlers."""
 
     def __init__(
         self,
-        handler: ActionHandler,
+        handler: ActionHandler | None = None,
         config: dict[str, Any] | None = None,
+        handlers: list[ActionHandler] | None = None,
     ) -> None:
         super().__init__("dispatch", config)
-        self._handler = handler
+        self._handlers: list[ActionHandler] = list(handlers or [])
+        if handler is not None:
+            self._handlers.append(handler)
 
     def process(self, result: GestureResult) -> GestureResult:
         if result is None:
             return None  # type: ignore[return-value]
-        self._handler.handle(result)
+        for h in self._handlers:
+            h.handle(result)
         return result
 
     def cleanup(self) -> None:
-        self._handler.cleanup()
+        for h in self._handlers:
+            h.cleanup()

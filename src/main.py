@@ -15,6 +15,7 @@ import yaml
 
 from src.capture.camera import CaptureStage
 from src.dispatch.dispatcher import ActionHandler, DispatchStage
+from src.dispatch.handlers.preview import PreviewHandler
 from src.dispatch.handlers.servo import ServoHandler
 from src.dispatch.handlers.terminal import TerminalHandler
 from src.inference.gesture_classifier import GestureClassifierStage
@@ -32,12 +33,21 @@ def _load_config(path: pathlib.Path) -> dict[str, Any]:
         return yaml.safe_load(f)
 
 
-def _build_handler(cfg: dict[str, Any]) -> ActionHandler:
+def _build_handlers(cfg: dict[str, Any]) -> list[ActionHandler]:
     dispatch_cfg = cfg.get("dispatch", {})
     handler_name = dispatch_cfg.get("handler", "terminal")
+    handlers: list[ActionHandler] = []
+
     if handler_name == "servo":
-        return ServoHandler(config=dispatch_cfg.get("servo", {}))
-    return TerminalHandler()
+        handlers.append(ServoHandler(config=dispatch_cfg.get("servo", {})))
+    else:
+        handlers.append(TerminalHandler())
+
+    preview_cfg = dispatch_cfg.get("preview", {})
+    if preview_cfg.get("enabled", False):
+        handlers.append(PreviewHandler(port=preview_cfg.get("port", 8080)))
+
+    return handlers
 
 
 def main(config_path: pathlib.Path = DEFAULT_CONFIG) -> None:
@@ -52,7 +62,7 @@ def main(config_path: pathlib.Path = DEFAULT_CONFIG) -> None:
     preprocess = PreprocessStage(config=cam_cfg)
     hand_landmarker = HandLandmarkerStage(config=hl_cfg)
     gesture_classifier = GestureClassifierStage(config=gc_cfg)
-    dispatch = DispatchStage(handler=_build_handler(cfg))
+    dispatch = DispatchStage(handlers=_build_handlers(cfg))
 
     # Segment 1 (capture thread): camera -> preprocess
     # Segment 2 (inference thread): hand landmarker -> gesture classifier
