@@ -22,25 +22,22 @@ class CaptureStage(Stage):
         self._picam2: Any = None
 
     def setup(self) -> None:
+        from libcamera import Transform
         from picamera2 import Picamera2
 
         width = self.config.get("width", 640)
         height = self.config.get("height", 480)
         fps = self.config.get("fps", 30)
+        hflip = self.config.get("hflip", False)
+        vflip = self.config.get("vflip", False)
 
         self._picam2 = Picamera2()
         cam_config = self._picam2.create_preview_configuration(
             main={"size": (width, height), "format": "RGB888"},
             controls={"FrameRate": fps},
+            transform=Transform(hflip=hflip, vflip=vflip),
         )
         self._picam2.configure(cam_config)
-
-        hflip = self.config.get("hflip", False)
-        vflip = self.config.get("vflip", False)
-        self._picam2.set_controls(
-            {"HorizontalFlip": int(hflip), "VerticalFlip": int(vflip)}
-        )
-
         self._picam2.start()
         self._log.info(
             "Camera started: %dx%d @ %d fps (hflip=%s, vflip=%s)",
