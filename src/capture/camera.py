@@ -67,7 +67,8 @@ class CaptureStage(Stage):
         )
 
     def process(self, _item: Any = None) -> np.ndarray:
-        return self._picam2.capture_array()
+        frame = self._picam2.capture_array()
+        return frame[:, :, ::-1].copy()
 
     def cleanup(self) -> None:
         if self._picam2 is not None:
