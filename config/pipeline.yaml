@@ -4,10 +4,17 @@ camera:
   fps: 30
   hflip: false
   vflip: false
+  # AWB mode: auto | incandescent | tungsten | fluorescent | indoor | daylight | cloudy
+  awb_mode: fluorescent
+  # Override AWB with fixed gains: [red_gain, blue_gain] (e.g. [1.5, 1.8])
+  # colour_gains: null
 
 pipeline:
   queue_size: 2
   drop_stale_frames: true
+
+preprocess:
+  undistort: true
 
 hand_landmarker:
   palm_model_path: models/palm_detection_mediapipe_2023feb.onnx

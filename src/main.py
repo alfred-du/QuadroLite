@@ -57,9 +57,10 @@ def main(config_path: pathlib.Path = DEFAULT_CONFIG) -> None:
     pipe_cfg = cfg.get("pipeline", {})
     hl_cfg = cfg.get("hand_landmarker", {})
     gc_cfg = cfg.get("gesture_classifier", {})
+    pre_cfg = {**cam_cfg, **cfg.get("preprocess", {})}
 
     capture = CaptureStage(config=cam_cfg)
-    preprocess = PreprocessStage(config=cam_cfg)
+    preprocess = PreprocessStage(config=pre_cfg)
     hand_landmarker = HandLandmarkerStage(config=hl_cfg)
     gesture_classifier = GestureClassifierStage(config=gc_cfg)
     dispatch = DispatchStage(handlers=_build_handlers(cfg))
