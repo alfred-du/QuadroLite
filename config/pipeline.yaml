@@ -13,9 +13,6 @@ pipeline:
   queue_size: 2
   drop_stale_frames: true
 
-preprocess:
-  undistort: true
-
 hand_landmarker:
   palm_model_path: models/palm_detection_mediapipe_2023feb.onnx
   hand_model_path: models/handpose_estimation_mediapipe_2023feb.onnx
