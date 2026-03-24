@@ -1,0 +1,38 @@
+camera:
+  width: 640
+  height: 480
+  fps: 30
+  hflip: false
+  vflip: false
+
+pipeline:
+  queue_size: 2
+  drop_stale_frames: true
+
+hand_landmarker:
+  palm_model_path: models/palm_detection_mediapipe_2023feb.onnx
+  hand_model_path: models/handpose_estimation_mediapipe_2023feb.onnx
+  num_hands: 1
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+
+gesture_classifier:
+  backend: rule_based
+  model_path: null
+  gestures:
+    - name: open_palm
+      action: stop
+    - name: fist
+      action: forward
+    - name: thumbs_up
+      action: nod
+    - name: peace
+      action: wave
+    - name: point
+      action: look
+
+dispatch:
+  handler: terminal
+  servo:
+    pin_pan: 12
+    pin_tilt: 13

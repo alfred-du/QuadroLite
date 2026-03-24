@@ -1,0 +1,6 @@
+# picamera2 should be installed via apt on RPi: sudo apt install python3-picamera2
+# mediapipe replaced by cv2.dnn + ONNX models for Python 3.13 compatibility
+opencv-python-headless
+numpy
+pyyaml
+psutil
