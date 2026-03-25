@@ -32,6 +32,10 @@ class GestureResult:
     landmarks: list[tuple[float, float, float]] | None = None
 
 
+def _dist2d(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
 def _is_finger_up(
     landmarks: list[tuple[float, float, float]],
     tip: int,
@@ -41,27 +45,24 @@ def _is_finger_up(
     return landmarks[tip][1] < landmarks[pip_][1]
 
 
-def _is_thumb_up(
+def _is_thumb_extended(
     landmarks: list[tuple[float, float, float]],
-    handedness: str,
 ) -> bool:
-    """Thumb is 'out' when its tip is further from the palm centre than its IP.
+    """Thumb is extended when its tip is farther from INDEX_MCP than its IP is.
 
-    For a right hand (mirrored in camera) the thumb extends to the left
-    (lower x), and vice-versa for a left hand.
+    Uses Euclidean distance so it works regardless of which side of the
+    hand faces the camera (palm or back) and does not depend on handedness.
     """
-    tip_x = landmarks[THUMB_TIP][0]
-    ip_x = landmarks[THUMB_IP][0]
-    if handedness == "Right":
-        return tip_x < ip_x
-    return tip_x > ip_x
+    return _dist2d(landmarks[THUMB_TIP], landmarks[INDEX_MCP]) > _dist2d(
+        landmarks[THUMB_IP], landmarks[INDEX_MCP]
+    )
 
 
 def _finger_states(hand: HandResult) -> tuple[bool, bool, bool, bool, bool]:
     """Return (thumb, index, middle, ring, pinky) up/down booleans."""
     lm = hand.landmarks
     return (
-        _is_thumb_up(lm, hand.handedness),
+        _is_thumb_extended(lm),
         _is_finger_up(lm, INDEX_TIP, INDEX_PIP),
         _is_finger_up(lm, MIDDLE_TIP, MIDDLE_PIP),
         _is_finger_up(lm, RING_TIP, RING_PIP),
@@ -72,11 +73,6 @@ def _finger_states(hand: HandResult) -> tuple[bool, bool, bool, bool, bool]:
 _GESTURE_TABLE: dict[tuple[bool, bool, bool, bool, bool], str] = {
     (False, False, False, False, False): "fist",
     (True, True, True, True, True): "open_palm",
-    (False, True, True, False, False): "peace",
-    (True, False, False, False, False): "thumbs_up",
-    (False, True, False, False, False): "point",
-    (False, False, False, False, True): "pinky",
-    (True, True, False, False, True): "rock",
 }
 
 

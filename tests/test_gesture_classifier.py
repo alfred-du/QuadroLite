@@ -19,8 +19,8 @@ _DOWN = 0.8  # finger curled (tip below PIP)
 _UP = 0.2    # finger extended (tip above PIP)
 _PIP_Y = 0.5  # reference PIP y for all fingers
 
-# Landmark x positions for thumb logic
-_THUMB_IP_X = 0.5
+# INDEX_MCP (landmark 5) is used as the distance reference for thumb detection.
+_INDEX_MCP_POS = (0.5, 0.5, 0.0)
 
 
 def _make_landmarks(
@@ -29,20 +29,23 @@ def _make_landmarks(
     middle_up: bool,
     ring_up: bool,
     pinky_up: bool,
-    handedness: str = "Right",
 ) -> list[tuple[float, float, float]]:
-    """Build a minimal 21-point landmark list with controllable finger states."""
+    """Build a minimal 21-point landmark list with controllable finger states.
+
+    Thumb detection is distance-based (no handedness dependency):
+    extended  → THUMB_TIP far from INDEX_MCP, farther than THUMB_IP
+    curled    → THUMB_TIP close to INDEX_MCP, closer than THUMB_IP
+    """
     lm = [(0.5, 0.5, 0.0)] * 21
 
-    # Thumb: tip x relative to IP x determines up/down.
-    # Right hand: thumb up => tip_x < ip_x
-    if handedness == "Right":
-        thumb_tip_x = 0.3 if thumb_up else 0.7
-    else:
-        thumb_tip_x = 0.7 if thumb_up else 0.3
+    lm[5] = _INDEX_MCP_POS  # INDEX_MCP — distance reference for thumb
 
-    lm[3] = (_THUMB_IP_X, 0.5, 0.0)   # THUMB_IP
-    lm[4] = (thumb_tip_x, 0.5, 0.0)   # THUMB_TIP
+    # THUMB_IP sits at a moderate distance from INDEX_MCP
+    lm[3] = (0.35, 0.5, 0.0)  # THUMB_IP
+    if thumb_up:
+        lm[4] = (0.15, 0.5, 0.0)  # THUMB_TIP far from INDEX_MCP → extended
+    else:
+        lm[4] = (0.42, 0.5, 0.0)  # THUMB_TIP closer than THUMB_IP → curled
 
     # Index
     lm[6] = (0.5, _PIP_Y, 0.0)        # INDEX_PIP
@@ -72,7 +75,7 @@ def _hand(
     handedness: str = "Right",
 ) -> HandResult:
     return HandResult(
-        landmarks=_make_landmarks(thumb, index, middle, ring, pinky, handedness),
+        landmarks=_make_landmarks(thumb, index, middle, ring, pinky),
         handedness=handedness,
         score=0.95,
     )
@@ -83,11 +86,8 @@ def _hand(
 # ---------------------------------------------------------------------------
 
 ACTION_MAP = {
-    "fist": "forward",
-    "open_palm": "stop",
-    "peace": "wave",
-    "thumbs_up": "nod",
-    "point": "look",
+    "fist": "stop",
+    "open_palm": "forward",
 }
 
 
@@ -100,7 +100,7 @@ class TestFingerStates:
         h = _hand(True, True, True, True, True)
         assert _finger_states(h) == (True, True, True, True, True)
 
-    def test_peace(self) -> None:
+    def test_partial_combo(self) -> None:
         h = _hand(False, True, True, False, False)
         assert _finger_states(h) == (False, True, True, False, False)
 
@@ -109,39 +109,25 @@ class TestClassifyHand:
     def test_fist(self) -> None:
         r = classify_hand(_hand(False, False, False, False, False), ACTION_MAP)
         assert r.gesture == "fist"
-        assert r.action == "forward"
+        assert r.action == "stop"
 
     def test_open_palm(self) -> None:
         r = classify_hand(_hand(True, True, True, True, True), ACTION_MAP)
         assert r.gesture == "open_palm"
-        assert r.action == "stop"
+        assert r.action == "forward"
 
-    def test_peace(self) -> None:
-        r = classify_hand(_hand(False, True, True, False, False), ACTION_MAP)
-        assert r.gesture == "peace"
-        assert r.action == "wave"
-
-    def test_thumbs_up(self) -> None:
-        r = classify_hand(_hand(True, False, False, False, False), ACTION_MAP)
-        assert r.gesture == "thumbs_up"
-        assert r.action == "nod"
-
-    def test_point(self) -> None:
-        r = classify_hand(_hand(False, True, False, False, False), ACTION_MAP)
-        assert r.gesture == "point"
-        assert r.action == "look"
-
-    def test_unknown_combo(self) -> None:
+    def test_unknown_combo_returns_none(self) -> None:
         r = classify_hand(_hand(True, True, True, True, False), ACTION_MAP)
         assert r.gesture is None
         assert r.action is None
 
-    def test_left_hand_thumb(self) -> None:
-        r = classify_hand(
-            _hand(True, False, False, False, False, handedness="Left"),
-            ACTION_MAP,
-        )
-        assert r.gesture == "thumbs_up"
+    def test_thumb_detection_is_handedness_independent(self) -> None:
+        """Both Right and Left hands should detect the same thumb state
+        since detection is distance-based, not x-direction-based."""
+        r_right = classify_hand(_hand(True, True, True, True, True, "Right"), ACTION_MAP)
+        r_left = classify_hand(_hand(True, True, True, True, True, "Left"), ACTION_MAP)
+        assert r_right.gesture == "open_palm"
+        assert r_left.gesture == "open_palm"
 
     def test_confidence_propagates(self) -> None:
         h = _hand(False, False, False, False, False)

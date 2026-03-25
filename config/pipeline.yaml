@@ -25,15 +25,9 @@ gesture_classifier:
   model_path: null
   gestures:
     - name: open_palm
-      action: stop
-    - name: fist
       action: forward
-    - name: thumbs_up
-      action: nod
-    - name: peace
-      action: wave
-    - name: point
-      action: look
+    - name: fist
+      action: stop
 
 dispatch:
   handler: terminal
