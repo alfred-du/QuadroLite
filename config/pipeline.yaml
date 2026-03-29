@@ -1,10 +1,15 @@
 camera:
+  # Backend: auto | picamera2 | opencv
+  # auto tries picamera2 first, falls back to opencv (V4L2/USB)
+  backend: auto
+  # OpenCV device index or path (e.g. 0, "/dev/video0"); ignored by picamera2
+  device: 0
   width: 640
   height: 480
   fps: 30
   hflip: false
   vflip: false
-  # AWB mode: auto | incandescent | tungsten | fluorescent | indoor | daylight | cloudy
+  # AWB mode (picamera2 only): auto | incandescent | tungsten | fluorescent | indoor | daylight | cloudy
   awb_mode: fluorescent
   # Override AWB with fixed gains: [red_gain, blue_gain] (e.g. [1.5, 1.8])
   # colour_gains: null

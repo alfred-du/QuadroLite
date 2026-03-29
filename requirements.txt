@@ -1,6 +1,11 @@
-# picamera2 should be installed via apt on RPi: sudo apt install python3-picamera2
-# mediapipe replaced by cv2.dnn + ONNX models for Python 3.13 compatibility
+# Core dependencies (all platforms)
 opencv-python-headless
 numpy
 pyyaml
 psutil
+
+# Raspberry Pi only (install via apt, not pip):
+#   sudo apt install python3-picamera2
+
+# ROS 2 Jazzy (Ubuntu 24.04) — provided by the ROS environment, not pip:
+#   rclpy, sensor_msgs, std_msgs, cv_bridge
